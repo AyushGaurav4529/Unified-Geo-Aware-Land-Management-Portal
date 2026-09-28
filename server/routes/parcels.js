@@ -280,9 +280,13 @@ router.get('/', (req, res) => {
   startSimulator(io);
   
   const stateFilter = req.query.state;
+  const districtFilter = req.query.district;
   let features = [...parcelsMap.values()];
-  if (stateFilter && stateFilter !== 'All') {
+  if (stateFilter && stateFilter !== 'All' && stateFilter !== 'ALL' && stateFilter !== 'National') {
     features = features.filter(f => f.properties.state.toLowerCase() === stateFilter.toLowerCase());
+  }
+  if (districtFilter && districtFilter !== 'ALL' && districtFilter !== 'All' && districtFilter !== 'National') {
+    features = features.filter(f => f.properties.district.toLowerCase() === districtFilter.toLowerCase());
   }
 
   res.json({

@@ -17,6 +17,7 @@ import {
   CheckBoxOutlineBlank, AddCircle, PlaylistAddCheck, ReportProblem
 } from '@mui/icons-material';
 import { getSocket } from '../services/socket';
+import { useAuth } from '../context/AuthContext';
 
 const API = 'http://localhost:5000/api/rr';
 
@@ -942,13 +943,17 @@ function BeneficiaryDialog({ open, onClose, beneficiary, onDisburse, onStatusCha
     </Dialog>
   );
 }
-
 // ── Main R&R Compensation Page ──────────────────────────────────────────────
 const RRTracker = () => {
+  const { user } = useAuth();
+  const isLocalAdmin = user && user.role !== 'Central Admin';
+  const userState = (user && user.state && user.state !== 'National') ? user.state : 'All';
+  const userDistrict = (user && user.district && user.district !== 'National') ? user.district : 'All';
+
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
-  const [stateFilter, setStateFilter] = useState('All');
+  const [stateFilter, setStateFilter] = useState(isLocalAdmin ? userState : 'All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBeneficiary, setSelectedBeneficiary] = useState(null);
@@ -964,9 +969,13 @@ const RRTracker = () => {
 
   const fetchData = useCallback(async () => {
     try {
+      const effState = isLocalAdmin ? userState : stateFilter;
+      const effDistrict = isLocalAdmin ? userDistrict : 'All';
+
       const params = new URLSearchParams();
-      if (stateFilter !== 'All') params.set('state', stateFilter);
-      if (statusFilter !== 'All') params.set('status', statusFilter);
+      if (effState !== 'All' && effState !== 'ALL') params.set('state', effState);
+      if (effDistrict !== 'All' && effDistrict !== 'ALL') params.set('district', effDistrict);
+      if (statusFilter !== 'All' && statusFilter !== 'ALL') params.set('status', statusFilter);
       if (searchTerm) params.set('search', searchTerm);
 
       const res = await fetch(`${API}/beneficiaries?${params}`);
@@ -979,7 +988,7 @@ const RRTracker = () => {
     } finally {
       setLoading(false);
     }
-  }, [stateFilter, statusFilter, searchTerm]);
+  }, [stateFilter, statusFilter, searchTerm, isLocalAdmin, userState, userDistrict]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -1171,8 +1180,17 @@ const RRTracker = () => {
           />
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>State</InputLabel>
-            <Select value={stateFilter} onChange={e => setStateFilter(e.target.value)} label="State">
-              {states.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+            <Select 
+              value={isLocalAdmin ? userState : stateFilter} 
+              onChange={e => !isLocalAdmin && setStateFilter(e.target.value)} 
+              label="State"
+              disabled={isLocalAdmin}
+            >
+              {isLocalAdmin ? (
+                <MenuItem value={userState}>{userState} Jurisdiction</MenuItem>
+              ) : (
+                states.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)
+              )}
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 200 }}>

@@ -20,6 +20,7 @@ import {
   Search, Layers, Tune, Check
 } from '@mui/icons-material';
 import { getSocket } from '../services/socket';
+import { useAuth } from '../context/AuthContext';
 import 'leaflet/dist/leaflet.css';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -485,11 +486,16 @@ function DocumentPreviewModal({ open, onClose, docType, parcel }) {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const MapViewer = () => {
+  const { user } = useAuth();
+  const isLocalAdmin = user && user.role !== 'Central Admin';
+  const userState = (user && user.state && user.state !== 'National') ? user.state : 'ALL';
+  const userDistrict = (user && user.district && user.district !== 'National') ? user.district : 'ALL';
+
   const [parcelsMap,     setParcelsMap]     = useState(new Map());
   const [loading,        setLoading]        = useState(true);
   const [selectedParcel, setSelectedParcel] = useState(null);
   const [filterStatus,   setFilterStatus]   = useState('All');
-  const [selectedRegion, setSelectedRegion] = useState('ALL');
+  const [selectedRegion, setSelectedRegion] = useState(isLocalAdmin ? userState : 'ALL');
   const [targetCoord,    setTargetCoord]    = useState(null);
   const [searchQuery,    setSearchQuery]    = useState('');
   const [opacity,        setOpacity]        = useState(0.65);
@@ -512,9 +518,16 @@ const MapViewer = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
+      const effState = isLocalAdmin ? userState : selectedRegion;
+      const effDistrict = isLocalAdmin ? userDistrict : 'ALL';
+      const qParams = new URLSearchParams();
+      if (effState !== 'ALL') qParams.append('state', effState);
+      if (effDistrict !== 'ALL') qParams.append('district', effDistrict);
+      const qStr = qParams.toString() ? `?${qParams.toString()}` : '';
+
       const [fcRes, actRes] = await Promise.all([
-        fetch(`${API}/api/parcels`),
-        fetch(`${API}/api/parcels/activity`)
+        fetch(`${API}/api/parcels${qStr}`),
+        fetch(`${API}/api/parcels/activity${qStr}`)
       ]);
       const fc  = await fcRes.json();
       const act = await actRes.json();
@@ -525,7 +538,7 @@ const MapViewer = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isLocalAdmin, userState, userDistrict, selectedRegion]);
 
   // ── Persistent Socket.io Integration (No disconnect on re-render) ─────────
   useEffect(() => {

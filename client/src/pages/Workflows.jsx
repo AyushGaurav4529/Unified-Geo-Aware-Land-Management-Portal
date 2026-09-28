@@ -11,6 +11,7 @@ import {
   ArrowForward, Warning, DoneAll
 } from '@mui/icons-material';
 import { getSocket } from '../services/socket';
+import { useAuth } from '../context/AuthContext';
 import LandPapersModal from '../components/LandPapersModal';
 
 const PIPELINE_STEPS = [
@@ -52,11 +53,16 @@ const STATUS_CHIPS = {
 };
 
 const Workflows = () => {
+  const { user } = useAuth();
+  const isLocalAdmin = user && user.role !== 'Central Admin';
+  const userState = (user && user.state && user.state !== 'National') ? user.state : 'ALL';
+  const userDistrict = (user && user.district && user.district !== 'National') ? user.district : 'ALL';
+
   const [parcels, setParcels] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [stateFilter, setStateFilter] = useState('ALL');
+  const [stateFilter, setStateFilter] = useState(isLocalAdmin ? userState : 'ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [toast, setToast] = useState('');
   const [selectedDoc, setSelectedDoc] = useState({ open: false, parcel: null });
@@ -65,7 +71,14 @@ const Workflows = () => {
   const fetchParcels = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/parcels');
+      const effState = isLocalAdmin ? userState : stateFilter;
+      const effDistrict = isLocalAdmin ? userDistrict : 'ALL';
+      const qParams = new URLSearchParams();
+      if (effState !== 'ALL') qParams.append('state', effState);
+      if (effDistrict !== 'ALL') qParams.append('district', effDistrict);
+      const qStr = qParams.toString() ? `?${qParams.toString()}` : '';
+
+      const res = await fetch(`http://localhost:5000/api/parcels${qStr}`);
       const data = await res.json();
       const list = data.features.map(f => ({
         id: f.properties.id,
@@ -73,18 +86,21 @@ const Workflows = () => {
         ...f.properties
       }));
       setParcels(list);
-      applyFilter(list, search, stateFilter, statusFilter);
+      applyFilter(list, search, effState, statusFilter);
     } catch (err) {
       console.error('Error fetching parcels for workflow:', err);
     } finally {
       setLoading(false);
     }
-  }, [search, stateFilter, statusFilter]);
+  }, [search, stateFilter, statusFilter, isLocalAdmin, userState, userDistrict]);
 
   const applyFilter = (dataList, q, state, status) => {
     let result = dataList;
     if (state !== 'ALL') {
       result = result.filter(p => p.state?.toLowerCase() === state.toLowerCase());
+    }
+    if (isLocalAdmin && userDistrict !== 'ALL') {
+      result = result.filter(p => p.district?.toLowerCase() === userDistrict.toLowerCase());
     }
     if (status !== 'ALL') {
       result = result.filter(p => p.status === status);
@@ -258,20 +274,27 @@ const Workflows = () => {
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel>State Cadastre Hub</InputLabel>
             <Select
-              value={stateFilter}
+              value={isLocalAdmin ? userState : stateFilter}
               label="State Cadastre Hub"
               onChange={handleStateChange}
+              disabled={isLocalAdmin}
               sx={{ bgcolor: 'white', fontWeight: 600 }}
             >
-              <MenuItem value="ALL">All India (8 States)</MenuItem>
-              <MenuItem value="Karnataka">Karnataka (Tumkur)</MenuItem>
-              <MenuItem value="Maharashtra">Maharashtra (Pune)</MenuItem>
-              <MenuItem value="Uttar Pradesh">Uttar Pradesh (Varanasi)</MenuItem>
-              <MenuItem value="Gujarat">Gujarat (Ahmedabad)</MenuItem>
-              <MenuItem value="Tamil Nadu">Tamil Nadu (Coimbatore)</MenuItem>
-              <MenuItem value="Rajasthan">Rajasthan (Jaipur)</MenuItem>
-              <MenuItem value="West Bengal">West Bengal (Hooghly)</MenuItem>
-              <MenuItem value="Punjab">Punjab (Ludhiana)</MenuItem>
+              {isLocalAdmin ? (
+                <MenuItem value={userState}>{userState} Jurisdiction</MenuItem>
+              ) : (
+                [
+                  <MenuItem key="ALL" value="ALL">All India (8 States)</MenuItem>,
+                  <MenuItem key="KA" value="Karnataka">Karnataka (Tumkur)</MenuItem>,
+                  <MenuItem key="MH" value="Maharashtra">Maharashtra (Pune)</MenuItem>,
+                  <MenuItem key="UP" value="Uttar Pradesh">Uttar Pradesh (Varanasi)</MenuItem>,
+                  <MenuItem key="GJ" value="Gujarat">Gujarat (Ahmedabad)</MenuItem>,
+                  <MenuItem key="TN" value="Tamil Nadu">Tamil Nadu (Coimbatore)</MenuItem>,
+                  <MenuItem key="RJ" value="Rajasthan">Rajasthan (Jaipur)</MenuItem>,
+                  <MenuItem key="WB" value="West Bengal">West Bengal (Hooghly)</MenuItem>,
+                  <MenuItem key="PB" value="Punjab">Punjab (Ludhiana)</MenuItem>
+                ]
+              )}
             </Select>
           </FormControl>
 

@@ -92,10 +92,34 @@ INSERT INTO roles (name) VALUES
 
 -- Users
 INSERT INTO users (name, email, password_hash, role_id, state, district) VALUES 
-('Central Admin User', 'admin@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 1, 'National', 'National'),
-('Karnataka State Officer', 'karnataka@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 2, 'Karnataka', NULL),
-('Tumkur District Officer', 'tumkur@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 3, 'Karnataka', 'Tumkur'),
+('Central Nodal Admin', 'admin@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 1, 'National', 'National'),
+-- Karnataka
+('Karnataka State Admin', 'karnataka@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 2, 'Karnataka', 'ALL'),
+('Tumkur District Admin', 'tumkur@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 3, 'Karnataka', 'Tumkur'),
+-- Maharashtra
+('Maharashtra State Admin', 'maharashtra@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 2, 'Maharashtra', 'ALL'),
+('Pune District Admin', 'pune@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 3, 'Maharashtra', 'Pune'),
+-- Uttar Pradesh
+('Uttar Pradesh State Admin', 'up@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 2, 'Uttar Pradesh', 'ALL'),
+('Varanasi District Admin', 'varanasi@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 3, 'Uttar Pradesh', 'Varanasi'),
+-- Gujarat
+('Gujarat State Admin', 'gujarat@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 2, 'Gujarat', 'ALL'),
+('Ahmedabad District Admin', 'ahmedabad@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 3, 'Gujarat', 'Ahmedabad'),
+-- Tamil Nadu
+('Tamil Nadu State Admin', 'tamilnadu@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 2, 'Tamil Nadu', 'ALL'),
+('Coimbatore District Admin', 'coimbatore@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 3, 'Tamil Nadu', 'Coimbatore'),
+-- Rajasthan
+('Rajasthan State Admin', 'rajasthan@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 2, 'Rajasthan', 'ALL'),
+('Jaipur District Admin', 'jaipur@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 3, 'Rajasthan', 'Jaipur'),
+-- West Bengal
+('West Bengal State Admin', 'westbengal@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 2, 'West Bengal', 'ALL'),
+('Hooghly District Admin', 'hooghly@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 3, 'West Bengal', 'Hooghly'),
+-- Punjab
+('Punjab State Admin', 'punjab@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 2, 'Punjab', 'ALL'),
+('Ludhiana District Admin', 'ludhiana@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 3, 'Punjab', 'Ludhiana'),
+-- Field Agent
 ('Field Agent Ramesh', 'ramesh@sih.gov.in', '$2a$10$XQYx3fVnQ.XkYc9YqT9yLu2D1QyJ9YqT9yLu2D1QyJ9YqT9yLu2D1', 4, 'Karnataka', 'Tumkur');
+
 -- Note: passwords above are dummies, they won't actually hash correctly with bcrypt but it's okay for seed schema initialization
 
 -- Parcels

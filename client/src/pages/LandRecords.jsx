@@ -10,6 +10,7 @@ import {
   Public, OpenInNew, Refresh
 } from '@mui/icons-material';
 import { getSocket } from '../services/socket';
+import { useAuth } from '../context/AuthContext';
 import LandPapersModal from '../components/LandPapersModal';
 
 const STATUS_COLORS = {
@@ -21,17 +22,29 @@ const STATUS_COLORS = {
 };
 
 const LandRecords = () => {
+  const { user } = useAuth();
+  const isLocalAdmin = user && user.role !== 'Central Admin';
+  const userState = (user && user.state && user.state !== 'National') ? user.state : 'ALL';
+  const userDistrict = (user && user.district && user.district !== 'National') ? user.district : 'ALL';
+
   const [records, setRecords] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState('');
-  const [stateFilter, setStateFilter] = useState('ALL');
+  const [stateFilter, setStateFilter] = useState(isLocalAdmin ? userState : 'ALL');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedDoc, setSelectedDoc] = useState({ open: false, parcel: null });
 
   const fetchParcels = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/parcels');
+      const effState = isLocalAdmin ? userState : stateFilter;
+      const effDistrict = isLocalAdmin ? userDistrict : 'ALL';
+      const qParams = new URLSearchParams();
+      if (effState !== 'ALL') qParams.append('state', effState);
+      if (effDistrict !== 'ALL') qParams.append('district', effDistrict);
+      const qStr = qParams.toString() ? `?${qParams.toString()}` : '';
+
+      const res = await fetch(`http://localhost:5000/api/parcels${qStr}`);
       const data = await res.json();
       const flatData = data.features.map(f => ({
         id: f.properties.id,
@@ -39,16 +52,19 @@ const LandRecords = () => {
         ...f.properties
       }));
       setRecords(flatData);
-      applyFilter(flatData, search, stateFilter);
+      applyFilter(flatData, search, effState);
     } catch (err) {
       console.error('Failed to fetch land records:', err);
     }
-  }, [search, stateFilter]);
+  }, [search, stateFilter, isLocalAdmin, userState, userDistrict]);
 
   const applyFilter = (dataList, term, state) => {
     let result = dataList;
     if (state !== 'ALL') {
       result = result.filter(r => r.state.toLowerCase() === state.toLowerCase());
+    }
+    if (isLocalAdmin && userDistrict !== 'ALL') {
+      result = result.filter(r => r.district.toLowerCase() === userDistrict.toLowerCase());
     }
     if (term.trim()) {
       const lower = term.toLowerCase().trim();
@@ -106,16 +122,18 @@ const LandRecords = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, fontFamily: 'Plus Jakarta Sans', color: '#0F172A' }}>
-            National Land Records Master (Pan-India)
+            {isLocalAdmin ? `${userState} Land Records Register` : 'National Land Records Master (Pan-India)'}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Certified Bhu-Aadhaar Cadastral Register • 100% Sole Titleholder Binding • Zero Encroachment PostGIS Disjoint Topology
+            {isLocalAdmin 
+              ? `Jurisdiction Area: ${userState} ${userDistrict !== 'ALL' ? `• District: ${userDistrict}` : ''} • Certified Bhu-Aadhaar Register` 
+              : 'Certified Bhu-Aadhaar Cadastral Register • 100% Sole Titleholder Binding • Zero Encroachment PostGIS Disjoint Topology'}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <Chip 
             icon={<Security sx={{ fontSize: 16 }} />} 
-            label="0% Overlap Guaranteed" 
+            label={isLocalAdmin ? `SCOPE: ${userState.toUpperCase()}` : "0% Overlap Guaranteed"} 
             color="success" 
             variant="outlined" 
             sx={{ fontWeight: 700 }}
@@ -146,20 +164,27 @@ const LandRecords = () => {
           <FormControl size="small" sx={{ minWidth: 220 }}>
             <InputLabel>State Cadastre Hub</InputLabel>
             <Select
-              value={stateFilter}
+              value={isLocalAdmin ? userState : stateFilter}
               label="State Cadastre Hub"
               onChange={handleStateChange}
+              disabled={isLocalAdmin}
               sx={{ fontWeight: 600 }}
             >
-              <MenuItem value="ALL">All India (All 8 States)</MenuItem>
-              <MenuItem value="Karnataka">Karnataka (Tumkur)</MenuItem>
-              <MenuItem value="Maharashtra">Maharashtra (Pune)</MenuItem>
-              <MenuItem value="Uttar Pradesh">Uttar Pradesh (Varanasi)</MenuItem>
-              <MenuItem value="Gujarat">Gujarat (Ahmedabad)</MenuItem>
-              <MenuItem value="Tamil Nadu">Tamil Nadu (Coimbatore)</MenuItem>
-              <MenuItem value="Rajasthan">Rajasthan (Jaipur)</MenuItem>
-              <MenuItem value="West Bengal">West Bengal (Hooghly)</MenuItem>
-              <MenuItem value="Punjab">Punjab (Ludhiana)</MenuItem>
+              {isLocalAdmin ? (
+                <MenuItem value={userState}>{userState} Jurisdiction</MenuItem>
+              ) : (
+                [
+                  <MenuItem key="ALL" value="ALL">All India (All 8 States)</MenuItem>,
+                  <MenuItem key="KA" value="Karnataka">Karnataka (Tumkur)</MenuItem>,
+                  <MenuItem key="MH" value="Maharashtra">Maharashtra (Pune)</MenuItem>,
+                  <MenuItem key="UP" value="Uttar Pradesh">Uttar Pradesh (Varanasi)</MenuItem>,
+                  <MenuItem key="GJ" value="Gujarat">Gujarat (Ahmedabad)</MenuItem>,
+                  <MenuItem key="TN" value="Tamil Nadu">Tamil Nadu (Coimbatore)</MenuItem>,
+                  <MenuItem key="RJ" value="Rajasthan">Rajasthan (Jaipur)</MenuItem>,
+                  <MenuItem key="WB" value="West Bengal">West Bengal (Hooghly)</MenuItem>,
+                  <MenuItem key="PB" value="Punjab">Punjab (Ludhiana)</MenuItem>
+                ]
+              )}
             </Select>
           </FormControl>
         </Box>

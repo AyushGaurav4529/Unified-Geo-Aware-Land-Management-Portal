@@ -3,12 +3,15 @@ import { Outlet, Navigate, Link as RouterLink, useLocation } from 'react-router-
 import { 
   Box, Drawer, AppBar, Toolbar, List, Typography, Divider, 
   IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  Avatar, Menu, MenuItem, Chip, Tooltip, Stack, Button
+  Avatar, Menu, MenuItem, Chip, Tooltip, Stack, Button,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert,
+  InputAdornment
 } from '@mui/material';
 import { 
   Menu as MenuIcon, Dashboard, Map, Description, 
   Assignment, AccountBalance, Logout, Public, FiberManualRecord,
-  VerifiedUser, Language, TextFields
+  VerifiedUser, Language, TextFields, VpnKey, Visibility, VisibilityOff,
+  ChevronRight, Security, Person
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -31,13 +34,77 @@ const MainLayout = () => {
   const [fontSizeLevel, setFontSizeLevel] = useState(0); // -1, 0, 1
   const [lang, setLang] = useState('EN');
 
+  // Change password modal state
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [changeError, setChangeError] = useState('');
+  const [changeSuccess, setChangeSuccess] = useState('');
+  const [submittingPassword, setSubmittingPassword] = useState(false);
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
-  const handleMenu = (event) => setAnchorEl(event.currentTarget);
-  const handleClose = () => setAnchorEl(null);
+  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleMenuClose = () => setAnchorEl(null);
+
+  const handleOpenChangePassword = () => {
+    handleMenuClose();
+    setChangeError('');
+    setChangeSuccess('');
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setChangePasswordOpen(true);
+  };
+
+  const handleCloseChangePassword = () => {
+    setChangePasswordOpen(false);
+  };
+
+  const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setChangeError('');
+    setChangeSuccess('');
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setChangeError('All fields are required.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setChangeError('New passwords do not match.');
+      return;
+    }
+    if (newPassword.length < 4) {
+      setChangeError('New password must be at least 4 characters.');
+      return;
+    }
+
+    setSubmittingPassword(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, currentPassword, newPassword })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update password');
+
+      setChangeSuccess('Password updated successfully! You can now use your new password.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setChangeError(err.message);
+    } finally {
+      setSubmittingPassword(false);
+    }
+  };
 
   const menuItems = [
     { text: 'National Dashboard', icon: <Dashboard />, path: '/app/dashboard' },
@@ -112,20 +179,33 @@ const MainLayout = () => {
         })}
       </List>
 
-      {/* User Card at bottom of Drawer */}
-      <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(0,0,0,0.15)' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Avatar sx={{ bgcolor: '#F59E0B', color: '#0B1F5C', fontWeight: 800, width: 34, height: 34, fontSize: '0.9rem' }}>
-            {user.name.charAt(0)}
-          </Avatar>
-          <Box sx={{ overflow: 'hidden' }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: 'white', display: 'block', noWrap: true }}>
-              {user.name}
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#93C5FD', fontSize: '0.68rem', display: 'block' }}>
-              {user.role}
-            </Typography>
+      {/* Interactive User Card at bottom of Drawer */}
+      <Box 
+        onClick={handleMenuOpen}
+        sx={{ 
+          p: 2, 
+          borderTop: '1px solid rgba(255,255,255,0.1)', 
+          bgcolor: 'rgba(0,0,0,0.2)',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
+            <Avatar sx={{ bgcolor: '#F59E0B', color: '#0B1F5C', fontWeight: 800, width: 36, height: 36, fontSize: '0.95rem' }}>
+              {user.name.charAt(0)}
+            </Avatar>
+            <Box sx={{ overflow: 'hidden' }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: 'white', lineHeight: 1.1, noWrap: true }}>
+                {user.name}
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#93C5FD', fontSize: '0.68rem', display: 'block' }}>
+                {user.role} ({user.state || 'National'})
+              </Typography>
+            </Box>
           </Box>
+          <ChevronRight sx={{ color: '#94A3B8', fontSize: 20 }} />
         </Box>
       </Box>
     </Box>
@@ -221,27 +301,49 @@ const MainLayout = () => {
               </Typography>
             </Box>
 
-            <Tooltip title="Account & Logout">
-              <IconButton onClick={handleMenu} sx={{ p: 0.5, border: '1px solid #CBD5E1' }}>
+            <Tooltip title="Officer Account Menu">
+              <IconButton onClick={handleMenuOpen} sx={{ p: 0.5, border: '1px solid #CBD5E1' }}>
                 <Avatar sx={{ bgcolor: '#0B1F5C', width: 32, height: 32, fontSize: '0.85rem', fontWeight: 700 }}>
                   {user.name.charAt(0)}
                 </Avatar>
               </IconButton>
             </Tooltip>
 
+            {/* Combined User Profile Menu (Active for top-right and bottom-left icons) */}
             <Menu
               anchorEl={anchorEl}
               open={Boolean(anchorEl)}
-              onClose={handleClose}
+              onClose={handleMenuClose}
               transformOrigin={{ horizontal: 'right', vertical: 'top' }}
               anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              PaperProps={{
+                elevation: 4,
+                sx: { minWidth: 220, borderRadius: 2, mt: 1, border: '1px solid #E2E8F0' }
+              }}
             >
-              <Box sx={{ px: 2, py: 1, minWidth: 160 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{user.name}</Typography>
-                <Typography variant="caption" color="text.secondary">{user.email}</Typography>
+              <Box sx={{ px: 2, py: 1.5, bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0B1F5C' }}>
+                  {user.name}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.72rem' }}>
+                  {user.email}
+                </Typography>
+                <Chip 
+                  label={user.role} 
+                  size="small" 
+                  color="primary" 
+                  sx={{ mt: 0.8, height: 18, fontSize: '0.6rem', fontWeight: 700 }} 
+                />
               </Box>
+
+              <MenuItem onClick={handleOpenChangePassword} sx={{ py: 1.2, fontSize: '0.85rem', fontWeight: 600 }}>
+                <ListItemIcon><VpnKey fontSize="small" sx={{ color: '#0B1F5C' }} /></ListItemIcon>
+                Change Password
+              </MenuItem>
+
               <Divider />
-              <MenuItem onClick={() => { handleClose(); logout(); }} sx={{ color: 'error.main', fontSize: '0.85rem' }}>
+
+              <MenuItem onClick={() => { handleMenuClose(); logout(); }} sx={{ py: 1.2, color: 'error.main', fontSize: '0.85rem', fontWeight: 700 }}>
                 <ListItemIcon><Logout fontSize="small" sx={{ color: 'error.main' }} /></ListItemIcon>
                 Logout Session
               </MenuItem>
@@ -298,7 +400,7 @@ const MainLayout = () => {
         </Drawer>
       </Box>
 
-      {/* ── Content Area (Pushed below top header & ticker) ── */}
+      {/* ── Content Area ── */}
       <Box component="main" sx={{
         flexGrow: 1,
         width: { sm: `calc(100% - ${drawerWidth}px)` },
@@ -313,6 +415,99 @@ const MainLayout = () => {
           <Outlet />
         </Box>
       </Box>
+
+      {/* ── Change Password Modal Dialog ── */}
+      <Dialog 
+        open={changePasswordOpen} 
+        onClose={handleCloseChangePassword} 
+        maxWidth="xs" 
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ bgcolor: '#0B1F5C', color: 'white', py: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <VpnKey sx={{ color: '#F59E0B' }} />
+          <Typography variant="h6" sx={{ fontWeight: 800, fontFamily: 'Plus Jakarta Sans', fontSize: '1.1rem' }}>
+            Change Officer Password
+          </Typography>
+        </DialogTitle>
+
+        <Box component="form" onSubmit={handleChangePasswordSubmit}>
+          <DialogContent sx={{ pt: 3 }}>
+            {changeError && <Alert severity="error" sx={{ mb: 2 }}>{changeError}</Alert>}
+            {changeSuccess && <Alert severity="success" sx={{ mb: 2 }}>{changeSuccess}</Alert>}
+
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              Update password for <strong>{user.email}</strong> ({user.role})
+            </Typography>
+
+            <TextField
+              fullWidth
+              label="Current Password"
+              type={showCurrentPassword ? 'text' : 'password'}
+              size="small"
+              margin="normal"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowCurrentPassword(!showCurrentPassword)} edge="end" size="small">
+                        {showCurrentPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }
+              }}
+            />
+
+            <TextField
+              fullWidth
+              label="New Password"
+              type={showNewPassword ? 'text' : 'password'}
+              size="small"
+              margin="normal"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowNewPassword(!showNewPassword)} edge="end" size="small">
+                        {showNewPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }
+              }}
+            />
+
+            <TextField
+              fullWidth
+              label="Confirm New Password"
+              type={showNewPassword ? 'text' : 'password'}
+              size="small"
+              margin="normal"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, pb: 2.5 }}>
+            <Button onClick={handleCloseChangePassword} color="inherit">
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              disabled={submittingPassword}
+              sx={{ bgcolor: '#0B1F5C', fontWeight: 700, '&:hover': { bgcolor: '#1E3A8A' } }}
+            >
+              {submittingPassword ? 'Updating...' : 'Update Password'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
     </Box>
   );
 };

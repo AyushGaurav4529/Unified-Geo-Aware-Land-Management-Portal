@@ -16,6 +16,7 @@ import {
   FactCheck, Help, Directions
 } from '@mui/icons-material';
 import { getSocket } from '../services/socket';
+import { useAuth } from '../context/AuthContext';
 
 const API = 'http://localhost:5000/api';
 
@@ -26,7 +27,13 @@ const STATES_LIST = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [selectedState, setSelectedState] = useState('ALL');
+  const { user } = useAuth();
+
+  const isLocalAdmin = user && user.role !== 'Central Admin';
+  const userState = (user && user.state && user.state !== 'National') ? user.state : 'ALL';
+  const userDistrict = (user && user.district && user.district !== 'National') ? user.district : 'ALL';
+
+  const [selectedState, setSelectedState] = useState(isLocalAdmin ? userState : 'ALL');
   const [kpi, setKpi] = useState(null);
   const [activities, setActivities] = useState([]);
   const [rrStats, setRrStats] = useState(null);
@@ -38,12 +45,19 @@ const Dashboard = () => {
   const fetchData = useCallback(async () => {
     try {
       setRefreshing(true);
-      const query = selectedState !== 'ALL' ? `?state=${encodeURIComponent(selectedState)}` : '';
+      const effState = isLocalAdmin ? userState : selectedState;
+      const effDistrict = isLocalAdmin ? userDistrict : 'ALL';
+      
+      const queryParams = new URLSearchParams();
+      if (effState !== 'ALL') queryParams.append('state', effState);
+      if (effDistrict !== 'ALL') queryParams.append('district', effDistrict);
+      const qStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
+
       const [kpiRes, actRes, rrRes, surveyRes] = await Promise.all([
-        fetch(`${API}/dashboard/kpi${query}`),
-        fetch(`${API}/dashboard/recent-activity`),
-        fetch(`${API}/rr/beneficiaries`),
-        fetch(`${API}/rr/field-surveys`)
+        fetch(`${API}/dashboard/kpi${qStr}`),
+        fetch(`${API}/dashboard/recent-activity${qStr}`),
+        fetch(`${API}/rr/beneficiaries${qStr}`),
+        fetch(`${API}/rr/field-surveys${qStr}`)
       ]);
 
       const [kpiData, actData, rrData, surveyData] = await Promise.all([
@@ -64,7 +78,7 @@ const Dashboard = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedState]);
+  }, [selectedState, isLocalAdmin, userState, userDistrict]);
 
   useEffect(() => {
     fetchData();
@@ -220,11 +234,13 @@ const Dashboard = () => {
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 0.5 }}>
             <Typography variant="h4" sx={{ fontWeight: 800, fontFamily: 'Plus Jakarta Sans', color: '#0B1F5C' }}>
-              National Land Governance Overview
+              {isLocalAdmin 
+                ? `${userState} ${userDistrict !== 'ALL' ? `(${userDistrict} Dist)` : 'State'} Land Governance` 
+                : 'National Land Governance Overview'}
             </Typography>
             <Chip 
               icon={<VerifiedUser sx={{ fontSize: 14 }} />} 
-              label="DILRMP COMPLIANT" 
+              label={isLocalAdmin ? `JURISDICTION: ${userState.toUpperCase()}` : "DILRMP COMPLIANT"} 
               size="small" 
               sx={{ bgcolor: '#0B1F5C', color: 'white', fontWeight: 800, fontSize: '0.65rem' }} 
             />
@@ -237,7 +253,9 @@ const Dashboard = () => {
             />
           </Box>
           <Typography variant="body2" color="text.secondary">
-            Continuous PostGIS Topological Cadastral Mesh • 1:1 Titleholder Binding • RFCTLARR 2013 Statutory Pipeline
+            {isLocalAdmin 
+              ? `Scoped Jurisdiction View: ${userState} ${userDistrict !== 'ALL' ? `• District: ${userDistrict}` : ''} • Continuous PostGIS Mesh` 
+              : 'Continuous PostGIS Topological Cadastral Mesh • 1:1 Titleholder Binding • RFCTLARR 2013 Statutory Pipeline'}
           </Typography>
         </Box>
 
@@ -246,15 +264,20 @@ const Dashboard = () => {
           <FormControl size="small" sx={{ minWidth: 170, bgcolor: 'white', borderRadius: 2 }}>
             <InputLabel>State Hub Filter</InputLabel>
             <Select 
-              value={selectedState} 
-              onChange={e => setSelectedState(e.target.value)} 
+              value={isLocalAdmin ? userState : selectedState} 
+              onChange={e => !isLocalAdmin && setSelectedState(e.target.value)} 
               label="State Hub Filter"
+              disabled={isLocalAdmin}
             >
-              {STATES_LIST.map(st => (
-                <MenuItem key={st} value={st}>
-                  {st === 'ALL' ? 'Pan-India (All Hubs)' : st}
-                </MenuItem>
-              ))}
+              {isLocalAdmin ? (
+                <MenuItem value={userState}>{userState} Jurisdiction</MenuItem>
+              ) : (
+                STATES_LIST.map(st => (
+                  <MenuItem key={st} value={st}>
+                    {st === 'ALL' ? 'Pan-India (All Hubs)' : st}
+                  </MenuItem>
+                ))
+              )}
             </Select>
           </FormControl>
 

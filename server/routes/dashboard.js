@@ -5,10 +5,14 @@ const { parcelsMap, activityLog } = require('./parcels');
 router.get('/kpi', async (req, res) => {
   const map = req.app.get('parcelsMap') || parcelsMap;
   const stateFilter = req.query.state;
+  const districtFilter = req.query.district;
 
   let allParcels = map ? [...map.values()] : [];
-  if (stateFilter && stateFilter !== 'ALL' && stateFilter !== 'All') {
+  if (stateFilter && stateFilter !== 'ALL' && stateFilter !== 'All' && stateFilter !== 'National') {
     allParcels = allParcels.filter(p => p.properties.state.toLowerCase() === stateFilter.toLowerCase());
+  }
+  if (districtFilter && districtFilter !== 'ALL' && districtFilter !== 'All' && districtFilter !== 'National') {
+    allParcels = allParcels.filter(p => p.properties.district.toLowerCase() === districtFilter.toLowerCase());
   }
 
   const totalParcels = allParcels.length;

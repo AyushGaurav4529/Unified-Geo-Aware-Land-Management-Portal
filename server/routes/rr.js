@@ -234,10 +234,13 @@ router.get('/beneficiaries', (req, res) => {
   let result = [...beneficiaries];
 
   // Filters
-  if (req.query.state && req.query.state !== 'All') {
-    result = result.filter(b => b.state === req.query.state);
+  if (req.query.state && req.query.state !== 'All' && req.query.state !== 'ALL' && req.query.state !== 'National') {
+    result = result.filter(b => b.state.toLowerCase() === req.query.state.toLowerCase());
   }
-  if (req.query.status && req.query.status !== 'All') {
+  if (req.query.district && req.query.district !== 'ALL' && req.query.district !== 'All' && req.query.district !== 'National') {
+    result = result.filter(b => b.district.toLowerCase() === req.query.district.toLowerCase());
+  }
+  if (req.query.status && req.query.status !== 'All' && req.query.status !== 'ALL') {
     result = result.filter(b => b.rr_status === req.query.status);
   }
   if (req.query.search) {

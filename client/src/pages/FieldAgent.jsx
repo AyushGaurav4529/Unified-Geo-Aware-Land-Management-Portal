@@ -23,6 +23,7 @@ import {
   VerifiedUser, Park, House, Assignment, CheckBox, FactCheck
 } from '@mui/icons-material';
 import { getSocket } from '../services/socket';
+import { useAuth } from '../context/AuthContext';
 
 const API = 'http://localhost:5000/api/rr';
 const OFFLINE_STORAGE_KEY = 'dilrmp_offline_surveys_queue';
@@ -157,6 +158,11 @@ function MissionGuideDialog({ open, onClose }) {
 
 // ── Main Field Agent Component ──────────────────────────────────────────────
 const FieldAgent = () => {
+  const { user } = useAuth();
+  const isLocalAdmin = user && user.role !== 'Central Admin';
+  const userState = (user && user.state && user.state !== 'National') ? user.state : 'ALL';
+  const userDistrict = (user && user.district && user.district !== 'National') ? user.district : 'ALL';
+
   const [tab, setTab] = useState(0);
 
   // Form state
@@ -197,7 +203,7 @@ const FieldAgent = () => {
     'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&auto=format&fit=crop&q=60'
   ]);
   const [fieldNotes, setFieldNotes] = useState('');
-  const [surveyorName, setSurveyorName] = useState('S. Venkatesh (Patwari #442)');
+  const [surveyorName, setSurveyorName] = useState(user ? `${user.name} (${user.role})` : 'S. Venkatesh (Patwari #442)');
   const [witnessName, setWitnessName] = useState('R. Gowda (Village Panchayat Member)');
 
   // Survey history & stats
@@ -237,7 +243,11 @@ const FieldAgent = () => {
     }
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`${API}/parcels-for-survey?search=${encodeURIComponent(parcelSearch)}`);
+        const qParams = new URLSearchParams({ search: parcelSearch });
+        if (isLocalAdmin && userState !== 'ALL') qParams.append('state', userState);
+        if (isLocalAdmin && userDistrict !== 'ALL') qParams.append('district', userDistrict);
+
+        const res = await fetch(`${API}/parcels-for-survey?${qParams.toString()}`);
         const data = await res.json();
         setParcelOptions(data || []);
       } catch {
@@ -245,19 +255,24 @@ const FieldAgent = () => {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [parcelSearch]);
+  }, [parcelSearch, isLocalAdmin, userState, userDistrict]);
 
   // Fetch survey history
   const fetchSurveys = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/field-surveys`);
+      const qParams = new URLSearchParams();
+      if (isLocalAdmin && userState !== 'ALL') qParams.append('state', userState);
+      if (isLocalAdmin && userDistrict !== 'ALL') qParams.append('district', userDistrict);
+      const qStr = qParams.toString() ? `?${qParams.toString()}` : '';
+
+      const res = await fetch(`${API}/field-surveys${qStr}`);
       const data = await res.json();
       setSurveys(data.surveys || []);
       setSurveyStats(data.stats || {});
     } catch (err) {
       console.error('Survey fetch error:', err);
     }
-  }, []);
+  }, [isLocalAdmin, userState, userDistrict]);
 
   useEffect(() => { fetchSurveys(); }, [fetchSurveys]);
 
