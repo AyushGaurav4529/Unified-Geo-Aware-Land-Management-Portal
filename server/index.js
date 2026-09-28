@@ -7,6 +7,7 @@ require('dotenv').config();
 const authRoutes      = require('./routes/auth');
 const parcelRoutes    = require('./routes/parcels');
 const dashboardRoutes = require('./routes/dashboard');
+const rrRoutes        = require('./routes/rr');
 
 const app = express();
 const server = http.createServer(app);
@@ -26,6 +27,10 @@ const io = new Server(server, {
 
 // Make io available to route handlers via req.app.get('io')
 app.set('io', io);
+
+// Expose parcels store to R&R routes
+const { parcelsMap } = require('./routes/parcels');
+app.set('parcelsMap', parcelsMap);
 
 io.on('connection', (socket) => {
   console.log(`[WS] Client connected: ${socket.id} (total online: ${io.engine.clientsCount})`);
@@ -48,6 +53,7 @@ app.get('/api/health', (req, res) =>
 app.use('/api/auth',      authRoutes);
 app.use('/api/parcels',   parcelRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/rr',        rrRoutes);
 
 // ── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;

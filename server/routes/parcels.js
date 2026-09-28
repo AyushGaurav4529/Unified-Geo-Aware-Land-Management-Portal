@@ -358,3 +358,4 @@ router.patch('/:id/status', (req, res) => {
 router.put('/:id/status', (req, res) => res.redirect(307, `/api/parcels/${req.params.id}/status`));
 
 module.exports = router;
+module.exports.parcelsMap = parcelsMap;
