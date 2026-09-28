@@ -599,7 +599,7 @@ const Dashboard = () => {
                   </Box>
                   <LinearProgress
                     variant="determinate"
-                    value={st.progress}
+                    value={Number(st.progress) || 0}
                     sx={{
                       height: 7,
                       borderRadius: 4,
@@ -642,7 +642,7 @@ const Dashboard = () => {
                   </Box>
                   <LinearProgress
                     variant="determinate"
-                    value={lu.percent}
+                    value={Number(lu.percent) || 0}
                     sx={{
                       height: 6,
                       borderRadius: 3,
@@ -678,22 +678,28 @@ const Dashboard = () => {
         <Divider sx={{ mb: 2 }} />
 
         <Grid container spacing={2}>
-          {activities.slice(0, 6).map((act) => (
-            <Grid item xs={12} sm={6} md={4} key={act.id}>
+          {activities.length === 0 ? (
+            <Grid item xs={12}>
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
+                No audit activity recorded yet. Parcel mutations and field submissions will appear here in real-time.
+              </Typography>
+            </Grid>
+          ) : activities.slice(0, 6).map((act) => (
+            <Grid item xs={12} sm={6} md={4} key={act.id || Math.random()}>
               <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: '#F8FAFC', height: '100%' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                   <Chip 
                     size="small" 
-                    label={act.action.replace('_', ' ')} 
-                    color={act.action.includes('DISBURSE') ? 'success' : act.action.includes('FLAG') ? 'error' : 'primary'}
+                    label={(act.action || 'ACTIVITY').replace(/_/g, ' ')} 
+                    color={act.action?.includes('DISBURSE') ? 'success' : act.action?.includes('FLAG') ? 'error' : 'primary'}
                     sx={{ fontWeight: 700, fontSize: '0.65rem' }} 
                   />
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                    {new Date(act.created_at || act.timestamp).toLocaleTimeString()}
+                    {new Date(act.created_at || act.timestamp || Date.now()).toLocaleTimeString()}
                   </Typography>
                 </Box>
                 <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', mt: 0.8 }}>
-                  Parcel #{act.survey_no || act.parcel_id}
+                  Parcel #{act.survey_no || act.parcel_id || 'N/A'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                   {act.actor_name || act.actor || 'Revenue Officer'}
