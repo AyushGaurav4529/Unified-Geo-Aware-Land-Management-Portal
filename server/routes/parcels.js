@@ -359,3 +359,4 @@ router.put('/:id/status', (req, res) => res.redirect(307, `/api/parcels/${req.pa
 
 module.exports = router;
 module.exports.parcelsMap = parcelsMap;
+module.exports.activityLog = activityLog;
