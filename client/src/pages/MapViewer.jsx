@@ -921,28 +921,26 @@ const MapViewer = () => {
                   maxZoom={22}
                 />
               </LayersControl.BaseLayer>
-              <LayersControl.BaseLayer name="CartoDB Voyager (Clean)">
+              <LayersControl.BaseLayer name="Stadia Smooth (Clean)">
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                  attribution="&copy; OpenStreetMap &copy; CARTO"
+                  url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
+                  attribution="&copy; Stadia Maps &copy; OpenStreetMap contributors"
                   updateWhenZooming={false}
                   updateWhenIdle={true}
                   keepBuffer={5}
                   maxNativeZoom={20}
                   maxZoom={22}
-                  subdomains="abcd"
                 />
               </LayersControl.BaseLayer>
-              <LayersControl.BaseLayer name="CartoDB Dark Matter">
+              <LayersControl.BaseLayer name="Stadia Dark Matter">
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                  attribution="&copy; OpenStreetMap &copy; CARTO"
+                  url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
+                  attribution="&copy; Stadia Maps &copy; OpenStreetMap contributors"
                   updateWhenZooming={false}
                   updateWhenIdle={true}
                   keepBuffer={5}
                   maxNativeZoom={20}
                   maxZoom={22}
-                  subdomains="abcd"
                 />
               </LayersControl.BaseLayer>
             </LayersControl>
